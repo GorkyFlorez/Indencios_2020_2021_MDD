@@ -1,0 +1,81 @@
+---
+title: "Aprende R desde Cero Para SIG (Basico - Avanzado)"
+author: "Ing. Gorky Florez Castillo"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    social: [ "twitter", "facebook", "whatsapp", "instagram", "telegram", "linkedin", "pinterest" ]
+    source_code: "https://github.com/GorkyFlorez"
+    theme: cerulean
+---
+
+```{r setup, include=FALSE}
+##--------------------------  LIBRERIAS
+library(sf)
+library(mapedit)
+library(raster)
+library(ggplot2)
+library(tmap)
+library(rgee)
+library(mapedit)
+library(rgee)
+library(googledrive)
+library(rgee)
+library(mapedit)
+library(tibble)
+library(sf)
+library(cptcity)
+library(tidyverse)
+library(sp)
+library(leaflet.extras2)
+library(raster)
+library(stars)
+library(geojsonio)
+library(ggmap)
+##--------------------------USUARIO
+ee_Initialize("gflorezc", drive = T)
+# Cargar el punto
+Poligono <-ee$FeatureCollection("users/gflorezc/Las_Piedras")
+
+box <- ee$Geometry$Rectangle(coords= c(-70.69426 , -12.60812 , -68.65202, -11.4373),
+                             proj= "EPSG:4326", geodesic = F)
+
+sentinel2 <- ee$ImageCollection("COPERNICUS/S2_SR")
+
+Trueimage <-sentinel2$filterBounds(Poligono)$ 
+  filterDate("2021-01-01", "2021-12-31")$ 
+  sort("CLOUDY_PIXEL_PERCENTAGE", FALSE)$
+  mosaic()$
+  clip(Poligono)
+
+True_2020 <-sentinel2$filterBounds(Poligono)$ 
+  filterDate("2020-01-01", "2020-12-31")$ 
+  sort("CLOUDY_PIXEL_PERCENTAGE", FALSE)$
+  mosaic()$
+  clip(Poligono)
+
+
+# Análisis de severidad de incendios con índice NBR
+NBRPostIncendio = Trueimage$normalizedDifference(c('B8','B12'))
+NBRPostInce_2020 = True_2020$normalizedDifference(c('B8','B12'))
+NDWIincendio <- c('#ffc8dd', '#9d0208', '#ffb703', '#55a630', '#006400', '#F6D53B')
+
+```
+
+Incendios en Madre de Dios
+===================================== 
+
+Column {data-width=550}
+-----------------------------------------------------------------------
+
+### Análisis de severidad de incendios con índice NBR (2020 - 2021)
+```{r d}
+# Visualizacion
+Map$centerObject(Poligono)
+Map$addLayer(eeObject =NBRPostInce_2020 , "NDWI Dhaka", visParams = list(                                   # LLamamos a NDWI y ponemos parametro de colores
+  min=0,   max=1, palette= NDWIincendio)) |
+  Map$addLayer(eeObject =NBRPostIncendio , "NDWI Dhaka", visParams = list(                                   # LLamamos a NDWI y ponemos parametro de colores
+    min=0,   max=1, palette= NDWIincendio))
+
+#NBRPostInce_2020 %>% ee_as_raster(region= box, scale=10 , dsn="Piedras_Indencio/Piedras_Indencio") -> Color_4325
+```
